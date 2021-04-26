@@ -62,9 +62,11 @@ pbmc <- ScaleData(pbmc, features = all.genes)
 pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
 print(pbmc[["pca"]], dims = 1:5, nfeatures = 5)
 
-VizDimLoadings(pbmc, dims = 1:2, reduction = "pca")
+VizDimLoadings(pbmc, dims = 1:4, reduction = "pca")
 
 DimPlot(pbmc, reduction = "pca")
+
+ElbowPlot(pbmc)
 
 DimHeatmap(pbmc, dims = 1, cells = 500, balanced = TRUE)
 
@@ -91,6 +93,14 @@ DimPlot(pbmc, reduction = "umap")
 
 ### Finding differentially expressed features (cluster biomarkers)
 cluster1.markers <- FindMarkers(pbmc, ident.1 = 1, min.pct = 0.25)
+cluster2.markers <- FindMarkers(pbmc, ident.1 = 2, min.pct = 0.25)
+cluster3.markers <- FindMarkers(pbmc, ident.1 = 3, min.pct = 0.25)
+cluster4.markers <- FindMarkers(pbmc, ident.1 = 4, min.pct = 0.25)
+cluster5.markers <- FindMarkers(pbmc, ident.1 = 5, min.pct = 0.25)
+
+marker_list1 <- data.frame(row.names(cluster1.markers))
+
+
 head(cluster1.markers, n = 5)
 
 
@@ -98,3 +108,33 @@ pbmc.markers <- FindAllMarkers(pbmc, only.pos = TRUE, min.pct = 0.25, logfc.thre
 pbmc.markers %>% group_by(cluster) %>% top_n(n = 2, wt = avg_log2FC)
 
 cluster1.markers <- FindMarkers(pbmc, ident.1 = 0, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+
+
+VlnPlot(pbmc, features = c("Cd74", "Lamp1"))
+
+
+head(cluster1.markers, n = 15)
+FeaturePlot(pbmc, features = c("Cd3e", "Cd4", "Cd8a", "Foxp3", "Cd40", "Cd44", "Cd19", "Cd74", "Cd9", "Lamp1", "Trim7"))
+# Cd3epsilon, Cd4, T Cell
+# Cd8a T Cell
+# Foxp3 Regualtory T cell
+#
+# Cd40 activated B cell
+# Cd19 (activated B cells), Cd74 for B Cells
+# Cd74 also shows up in some T cells and Macrophages (monocytes on the right)
+# Cd9 on T, B, Monocytes. Platelet also has Cd9 (the small island on the bottom right side)
+# Lamp1 -> on most cells but mostly on monocyte. also on RBC
+#
+# 
+
+
+top10 <- pbmc.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_log2FC)
+DoHeatmap(pbmc, features = top10$gene) + NoLegend()
+
+
+
+new.cluster.ids <- c("Naive CD4 T", "Memory CD4 T", "CD14+ Mono", "B", "CD8 T", "FCGR3A+ Mono", 
+                     "NK", "DC", "Platelet")
+names(new.cluster.ids) <- levels(pbmc)
+pbmc <- RenameIdents(pbmc, new.cluster.ids)
+DimPlot(pbmc, reduction = "umap", label = TRUE, pt.size = 0.5)
